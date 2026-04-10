@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Mob Programming</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #050505;
+    --dark: #0c0c0c;
+    --surface: #111;
+    --border: #1e1e1e;
+    --text: #c8c8c8;
+    --text-dim: #666;
+    --green: #22c55e;
+    --green-dim: rgba(34, 197, 94, 0.12);
+    --green-glow: rgba(34, 197, 94, 0.25);
+    --amber: #f59e0b;
+    --cyan: #06b6d4;
+    --pink: #ec4899;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Grain overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ---- HERO ---- */
+  .hero {
+    padding: 120px 0 80px;
+    position: relative;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 80px;
+    background: linear-gradient(to bottom, transparent, var(--green));
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--green);
+    border: 1px solid var(--green);
+    padding: 6px 14px;
+    border-radius: 2px;
+    margin-bottom: 32px;
+    background: var(--green-dim);
+  }
+
+  h1 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-size: clamp(48px, 8vw, 72px);
+    line-height: 1.05;
+    color: #fff;
+    margin-bottom: 24px;
+    letter-spacing: -1px;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--green);
+  }
+
+  .hero-sub {
+    font-size: 15px;
+    color: var(--text-dim);
+    max-width: 520px;
+    line-height: 1.7;
+  }
+
+  /* ---- PROBLEM ---- */
+  .problem {
+    padding: 60px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .problem p {
+    font-family: 'Instrument Serif', serif;
+    font-size: 24px;
+    line-height: 1.5;
+    color: #ddd;
+    max-width: 600px;
+  }
+
+  .problem p span {
+    color: var(--text-dim);
+    text-decoration: line-through;
+    text-decoration-color: var(--pink);
+  }
+
+  /* ---- DIAGRAM ---- */
+  .diagram-section {
+    padding: 60px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 32px;
+  }
+
+  .diagram-box {
+    background: var(--dark);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 40px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .diagram-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+  }
+
+  .diagram-grid {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr;
+    gap: 0;
+    align-items: center;
+  }
+
+  .pair {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .pair-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .pair-label.a { color: var(--cyan); }
+  .pair-label.b { color: var(--amber); }
+
+  .pair-node {
+    width: 100%;
+    max-width: 160px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 14px;
+    text-align: center;
+    font-size: 12px;
+    background: var(--surface);
+  }
+
+  .pair-node.human { color: #fff; }
+  .pair-node.agent-a { color: var(--cyan); border-color: rgba(6, 182, 212, 0.3); }
+  .pair-node.agent-b { color: var(--amber); border-color: rgba(245, 158, 11, 0.3); }
+
+  .diagram-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 0 4px;
+  }
+
+  .sync-line {
+    width: 1px;
+    height: 16px;
+    background: var(--green);
+    opacity: 0.4;
+  }
+
+  .sync-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green-glow);
+  }
+
+  .shared-bar {
+    margin-top: 28px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .shared-item {
+    font-size: 11px;
+    color: var(--green);
+    background: var(--green-dim);
+    border: 1px solid rgba(34, 197, 94, 0.15);
+    padding: 6px 14px;
+    border-radius: 3px;
+  }
+
+  /* ---- HOW IT WORKS ---- */
+  .how {
+    padding: 60px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 20px;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .step:last-child { border-bottom: none; }
+
+  .step-num {
+    font-size: 11px;
+    color: var(--green);
+    padding-top: 3px;
+  }
+
+  .step-content h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+
+  .step-content p {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.65;
+  }
+
+  /* ---- MOB DIR ---- */
+  .mob-dir {
+    padding: 60px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .terminal {
+    background: var(--dark);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .terminal-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+
+  .terminal-dot:nth-child(1) { background: #ff5f57; }
+  .terminal-dot:nth-child(2) { background: #febc2e; }
+  .terminal-dot:nth-child(3) { background: #28c840; }
+
+  .terminal-title {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-left: 8px;
+  }
+
+  .terminal-body {
+    padding: 20px;
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--text-dim);
+  }
+
+  .terminal-body .dir { color: var(--cyan); }
+  .terminal-body .file { color: var(--text); }
+  .terminal-body .comment { color: #444; font-style: italic; }
+
+  /* ---- THE LOOP ---- */
+  .loop-section {
+    padding: 60px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .loop-code {
+    background: var(--dark);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 28px 24px;
+    font-size: 13px;
+    line-height: 2;
+    color: var(--text-dim);
+    overflow-x: auto;
+  }
+
+  .loop-code .kw { color: var(--pink); }
+  .loop-code .fn { color: var(--cyan); }
+  .loop-code .str { color: var(--green); }
+  .loop-code .cmt { color: #333; }
+
+  /* ---- PITCH ---- */
+  .pitch {
+    padding: 80px 0;
+    border-top: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .pitch h2 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-size: 36px;
+    color: #fff;
+    margin-bottom: 16px;
+    letter-spacing: -0.5px;
+  }
+
+  .pitch p {
+    font-size: 14px;
+    color: var(--text-dim);
+    max-width: 480px;
+    margin: 0 auto 32px;
+    line-height: 1.7;
+  }
+
+  .cta {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--black);
+    background: var(--green);
+    padding: 12px 28px;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+  }
+
+  .cta:hover {
+    background: #16a34a;
+    box-shadow: 0 0 24px var(--green-glow);
+  }
+
+  /* ---- FOOTER ---- */
+  .footer {
+    padding: 40px 0;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* ---- ANIMATIONS ---- */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero .badge,
+  .hero h1,
+  .hero .hero-sub {
+    animation: fadeUp 0.6s ease-out both;
+  }
+
+  .hero h1 { animation-delay: 0.15s; }
+  .hero .hero-sub { animation-delay: 0.3s; }
+
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 600px) {
+    .hero { padding: 80px 0 60px; }
+    .hero::before { height: 50px; }
+    .diagram-grid { grid-template-columns: 1fr; gap: 16px; }
+    .diagram-center { flex-direction: row; padding: 8px 0; }
+    .sync-line { width: 16px; height: 1px; }
+    .shared-bar { gap: 10px; }
+    .loop-code { font-size: 11px; padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="badge">New workflow</div>
+    <h1>Two engineers.<br>Two AI agents.<br>One <em>shared brain.</em></h1>
+    <p class="hero-sub">AI mob programming. Each engineer gets Claude Code as their driver. A shared context layer in git keeps both agents in sync. No extra tools. Just a branch and a folder.</p>
+  </section>
+
+  <!-- PROBLEM -->
+  <section class="problem">
+    <p>Right now you can pair program with AI. One human, one agent. It works. But when two engineers collaborate, the agents are <span>blind to each other</span>. Context gets lost at every handoff. You re-explain. You duplicate work. You step on each other's code.</p>
+  </section>
+
+  <!-- DIAGRAM -->
+  <section class="diagram-section">
+    <div class="section-label">The setup</div>
+    <div class="diagram-box">
+      <div class="diagram-grid">
+        <div class="pair">
+          <div class="pair-label a">Engineer A</div>
+          <div class="pair-node human">You</div>
+          <div class="pair-node agent-a">Claude Code</div>
+        </div>
+        <div class="diagram-center">
+          <div class="sync-line"></div>
+          <div class="sync-dot"></div>
+          <div class="sync-line"></div>
+          <div class="sync-dot"></div>
+          <div class="sync-line"></div>
+        </div>
+        <div class="pair">
+          <div class="pair-label b">Engineer B</div>
+          <div class="pair-node human">Colleague</div>
+          <div class="pair-node agent-b">Claude Code</div>
+        </div>
+      </div>
+      <div class="shared-bar">
+        <div class="shared-item">mobbing/* branch</div>
+        <div class="shared-item">.mob/ context</div>
+        <div class="shared-item">turn log</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how">
+    <div class="section-label">How it works</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <h3>Branch triggers the mode</h3>
+          <p>Check out <code>mobbing/auth-refactor</code>. Claude detects the branch prefix and enters mob mode automatically. It sets up a <code>.mob/</code> directory and walks you through defining the session goal and plan.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <h3>Work with your agent</h3>
+          <p>Claude drives, you navigate. Normal AI pair programming. But now Claude commits frequently, pushes immediately, and writes a context update to <code>.mob/</code> with every commit — what it did, what's next, what to watch out for.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <h3>Context stays in sync</h3>
+          <p>Claude pulls every 2 turns and reads the other engineer's context file and turn log. It knows what the other pair is working on, what decisions they made, and what they tried. No re-explaining.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-content">
+          <h3>Take turns or work in parallel</h3>
+          <p>Hand off by pushing and telling the other person to pull. Or work simultaneously on different parts — Claude reads the other pair's focus area and stays out of their files.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">05</div>
+        <div class="step-content">
+          <h3>Decisions propagate instantly</h3>
+          <p>Say "let's change the approach to use queues instead." Claude updates the session context and commits it separately. The other engineer's Claude picks up the decision on next pull — before any code follows from it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MOB DIR -->
+  <section class="mob-dir">
+    <div class="section-label">What lives in .mob/</div>
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-title">.mob/auth-refactor/</div>
+      </div>
+      <div class="terminal-body">
+        <span class="file">session.md</span> <span class="comment"># goal, plan, scope, shared decisions</span><br>
+        <span class="file">log.md</span> <span class="comment"># append-only turn log — who asked what, what happened</span><br>
+        <span class="file">alice.md</span> <span class="comment"># Alice's context — focus, last commit, notes for Bob</span><br>
+        <span class="file">bob.md</span> <span class="comment"># Bob's context — focus, last commit, notes for Alice</span>
+      </div>
+    </div>
+    <p style="font-size: 12px; color: var(--text-dim); margin-top: 16px; line-height: 1.7;">Plain markdown. Versioned in git. No external services. Each Claude reads the full <code>.mob/</code> directory on every pull and updates its own files on every commit. The turn log captures sanitised prompt summaries and actions so the other agent can follow the reasoning, not just the code.</p>
+  </section>
+
+  <!-- THE LOOP -->
+  <section class="loop-section">
+    <div class="section-label">The commit loop</div>
+    <div class="loop-code">
+<span class="kw">while</span> <span class="fn">mobbing</span>:<br>
+&nbsp;&nbsp;<span class="fn">git pull</span> <span class="str">--rebase</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt"># every 2 turns</span><br>
+&nbsp;&nbsp;<span class="fn">read</span> <span class="str">.mob/*.md</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt"># pick up other pair's context</span><br>
+&nbsp;&nbsp;<span class="fn">work</span>() &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt"># claude drives, you navigate</span><br>
+&nbsp;&nbsp;<span class="fn">update</span> <span class="str">.mob/you.md</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt"># write context + append to log</span><br>
+&nbsp;&nbsp;<span class="fn">git add -A && commit && push</span> <span class="cmt"># one action, always together</span>
+    </div>
+  </section>
+
+  <!-- PITCH -->
+  <section class="pitch">
+    <h2>The missing piece was context,<br>not code.</h2>
+    <p>Git solved sharing code. This solves sharing the thinking around it. Two agents that read each other's notes, follow each other's reasoning, and never ask "where were we?"</p>
+    <p style="font-size: 12px; color: var(--text-dim);">It's a Claude Code skill. Install it, check out a <code>mobbing/*</code> branch, and start working. Open source. No dependencies beyond git.</p>
+  </section>
+
+  <div class="footer">
+    AI Mob Programming — 2026
+  </div>
+
+</div>
+
+</body>
+</html>
