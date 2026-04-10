@@ -1,0 +1,8 @@
+{
+  "name": "mob",
+  "version": "1.0.0",
+  "description": "AI mob programming toolkit. Two engineers, two Claude Code instances, one shared brain. Real-time collaborative coding via git and markdown context files.",
+  "repository": "https://github.com/mumby0168/mob",
+  "license": "MIT",
+  "skills": "./.claude/skills/"
+}

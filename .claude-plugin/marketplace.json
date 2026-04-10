@@ -1,0 +1,16 @@
+{
+  "name": "mob",
+  "description": "AI mob programming for Claude Code",
+  "owner": {
+    "name": "Billy Mumby",
+    "github": "mumby0168"
+  },
+  "plugins": [
+    {
+      "name": "mob",
+      "description": "AI mob programming toolkit. Two engineers, two Claude Code instances, one shared brain. Collaborative coding via git and markdown — no external services required.",
+      "category": "development",
+      "source": "./"
+    }
+  ]
+}
